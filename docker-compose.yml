@@ -1,0 +1,20 @@
+version: "3.8"
+
+services:
+  funasr-api:
+    build: .
+    container_name: funasr-api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ~/.cache/modelscope:/root/.cache/modelscope # 模型缓存
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+    environment:
+      - CUDA_VISIBLE_DEVICES=0

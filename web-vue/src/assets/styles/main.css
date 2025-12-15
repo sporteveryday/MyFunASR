@@ -1,0 +1,72 @@
+/* ============================================
+   FunASR Web UI - Global Styles
+   Dark Theme Speech Recognition Interface
+   ============================================ */
+
+:root {
+  /* Colors */
+  --bg-dark: #0a0a0f;
+  --bg-main: #0f0f14;
+  --bg-card: #141419;
+  --bg-input: #1a1a21;
+  --bg-hover: #1e1e26;
+  
+  --border-color: #232329;
+  --border-light: #2d2d36;
+  
+  --text-white: #ffffff;
+  --text-gray: #a0a0a8;
+  --text-muted: #6b6b75;
+  
+  --accent-blue: #3b82f6;
+  --accent-purple: #8b5cf6;
+  --accent-gradient: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  
+  --success: #22c55e;
+  --error: #ef4444;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg-main);
+  color: var(--text-white);
+  min-height: 100vh;
+}
+
+/* Animations */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
