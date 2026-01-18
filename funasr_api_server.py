@@ -397,6 +397,43 @@ from pydantic import BaseModel
 class UrlRequest(BaseModel):
     url: str
 
+class AnalysisRequest(BaseModel):
+    text: str
+
+@app.post("/analyze")
+async def analyze_result(request: AnalysisRequest):
+    """
+    使用 Grok LLM 对识别结果进行深度分析
+    
+    - **text**: 识别出的文本内容
+    
+    返回:
+    - **summary**: AI 总结
+    - **highlights**: 核心重点列表
+    - **suggestions**: 行动建议
+    """
+    from llm_service import analyze_text_with_llm
+    
+    try:
+        logger.info("正在使用 Mistral LLM 分析文本...")
+        analysis = await analyze_text_with_llm(request.text)
+        
+        if analysis:
+            return JSONResponse(content={
+                "success": True,
+                **analysis
+            })
+        else:
+            return JSONResponse(content={
+                "success": False,
+                "message": "AI 分析暂时不可用，请检查 API Key 配置"
+            }, status_code=503)
+            
+    except Exception as e:
+        logger.error(f"分析失败: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.post("/transcribe_url")
 async def transcribe_url(request: UrlRequest):
     """

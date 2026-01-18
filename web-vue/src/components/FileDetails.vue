@@ -46,14 +46,6 @@
       </span>
       <span class="detail-value">{{ duration || "--" }}</span>
     </div>
-    <button
-      class="transcribe-btn"
-      :disabled="isLoading"
-      @click="$emit('transcribe')"
-    >
-      <span class="btn-spinner" v-if="isLoading"></span>
-      <span>{{ isLoading ? "识别中..." : "开始识别" }}</span>
-    </button>
   </div>
 </template>
 
@@ -71,13 +63,7 @@ defineProps({
     type: String,
     default: null,
   },
-  isLoading: {
-    type: Boolean,
-    default: false,
-  },
 });
-
-defineEmits(["transcribe"]);
 </script>
 
 <style scoped>
@@ -117,42 +103,5 @@ defineEmits(["transcribe"]);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.transcribe-btn {
-  width: 100%;
-  padding: 16px 24px;
-  margin-top: 16px;
-  border: none;
-  border-radius: 12px;
-  background: var(--accent-gradient);
-  color: white;
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-
-.transcribe-btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.3);
-}
-
-.transcribe-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-spinner {
-  width: 18px;
-  height: 18px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: white;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
 }
 </style>

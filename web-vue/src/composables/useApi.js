@@ -76,6 +76,22 @@ export function useApi() {
     return await response.json();
   };
 
+  // Analyze text with AI
+  const analyzeText = async (text) => {
+    const response = await fetch(`${apiUrl.value}/analyze`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || "分析失败");
+    }
+
+    return await response.json();
+  };
+
   // Save API URL
   const saveApiUrl = (newUrl) => {
     apiUrl.value = newUrl;
@@ -123,5 +139,6 @@ export function useApi() {
     transcribeUrl,
     saveApiUrl,
     testConnection,
+    analyzeText,
   };
 }

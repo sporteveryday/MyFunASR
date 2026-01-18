@@ -30,6 +30,30 @@
         />
       </div>
 
+      <!-- Processing State for File Mode -->
+      <div
+        v-if="mode === 'file' && selectedFile && !result"
+        class="processing-view"
+      >
+        <InfoCard :title="selectedFile.name">
+          <div class="processing-placeholder">
+            <div class="pulse-icon">📂</div>
+            <p>文件已选定，准备开启 AI 识别与分析之旅</p>
+          </div>
+          <ProgressBar
+            :show="isLoading"
+            :progress="processingProgress"
+            :status="processingStatus"
+          />
+          <div class="actions" v-if="!isLoading">
+            <button class="primary-btn" @click="handleFileTranscribe">
+              开始识别分析
+            </button>
+            <button class="remove-btn" @click="clearFile">更换文件</button>
+          </div>
+        </InfoCard>
+      </div>
+
       <!-- URL Input Mode -->
       <div v-if="mode === 'url' && !urlInfo">
         <URLInput
@@ -45,115 +69,55 @@
         />
       </div>
 
-      <!-- File Mode Content Grid-->
-      <div class="content-grid" v-if="mode === 'file' && selectedFile">
+      <!-- Result Content Grid (Common for both modes when ready) -->
+      <div
+        class="content-grid"
+        v-if="(mode === 'file' && result) || (mode === 'url' && urlInfo)"
+      >
         <InfoCard
-          title="媒体预览"
+          :title="mode === 'file' ? '媒体预览' : '视频预览'"
           :show-remove="true"
-          remove-text="移除文件"
-          @remove="clearFile"
+          :remove-text="mode === 'file' ? '移除文件' : '重新输入'"
+          @remove="mode === 'file' ? clearFile() : clearUrl()"
         >
           <MediaPreview
+            v-if="mode === 'file'"
             :is-video="isVideo"
             :is-audio="isAudio"
             :preview-url="previewUrl"
             @loaded="onMediaLoaded"
           />
-          <FileDetails
-            :file-name="selectedFile.name"
-            :file-size="formatFileSize(selectedFile.size)"
-            :duration="mediaDuration"
-            :is-loading="isLoading"
-            @transcribe="handleFileTranscribe"
-            style="margin-top: 16px"
-          />
-          <ProgressBar
-            :show="isLoading"
-            :progress="processingProgress"
-            :status="processingStatus"
-          />
-        </InfoCard>
-
-        <ResultCard
-          :result="result"
-          @copy="copyResult"
-          @view-report="openReport"
-        />
-      </div>
-
-      <!-- URL Mode Content Grid -->
-      <div class="content-grid" v-if="mode === 'url' && urlInfo">
-        <InfoCard
-          title="视频预览"
-          :show-remove="true"
-          remove-text="重新输入"
-          @remove="clearUrl"
-        >
           <MediaPreview
+            v-else
             :embed-url="embedUrl"
             :placeholder-text="urlInfo.title"
           />
-          <div class="file-details" style="margin-top: 16px">
+
+          <FileDetails
+            v-if="mode === 'file'"
+            :file-name="selectedFile.name"
+            :file-size="formatFileSize(selectedFile.size)"
+            :duration="mediaDuration"
+            :is-loading="false"
+            style="margin-top: 16px"
+          />
+          <div v-else class="file-details" style="margin-top: 16px">
             <div class="detail-item">
-              <span class="detail-label">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <polygon points="23,7 16,12 23,17" />
-                  <rect x="1" y="5" width="15" height="14" rx="2" />
-                </svg>
-                视频标题
-              </span>
-              <span class="detail-value" :title="urlInfo.title">{{
-                urlInfo.title
-              }}</span>
+              <span class="detail-label">视频标题</span>
+              <span class="detail-value">{{ urlInfo.title }}</span>
             </div>
             <div class="detail-item">
-              <span class="detail-label">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <circle cx="12" cy="12" r="10" />
-                  <polyline points="12,6 12,12 16,14" />
-                </svg>
-                时长
-              </span>
+              <span class="detail-label">时长</span>
               <span class="detail-value">{{
                 formatDuration(urlInfo.duration)
               }}</span>
             </div>
-            <div class="detail-item">
-              <span class="detail-label">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-                </svg>
-                处理耗时
-              </span>
-              <span class="detail-value">{{ urlInfo.processing_time }}s</span>
-            </div>
           </div>
-          <ProgressBar
-            :show="isLoading"
-            :progress="processingProgress"
-            :status="processingStatus"
-          />
         </InfoCard>
 
         <ResultCard
-          :result="urlInfo"
+          :result="mode === 'file' ? result : urlInfo"
           @copy="copyResult"
-          @view-report="openReport"
         />
       </div>
     </div>
@@ -171,11 +135,10 @@
     <!-- Toast Notification -->
     <Toast :toast="toast" />
 
-    <!-- Report Modal -->
-    <ReportModal
-      :show="showReport"
-      :result="currentReportResult"
-      @close="showReport = false"
+    <!-- AI Report Inline Section -->
+    <AIReport
+      v-if="(mode === 'file' && result) || (mode === 'url' && urlInfo)"
+      :result="mode === 'file' ? result : urlInfo"
     />
   </div>
 </template>
@@ -191,7 +154,7 @@ import InfoCard from "./components/InfoCard.vue";
 import FileDetails from "./components/FileDetails.vue";
 import ResultCard from "./components/ResultCard.vue";
 import ProgressBar from "./components/ProgressBar.vue";
-import ReportModal from "./components/ReportModal.vue";
+import AIReport from "./components/AIReport.vue";
 import SettingsModal from "./components/SettingsModal.vue";
 import Toast from "./components/Toast.vue";
 
@@ -207,8 +170,6 @@ const result = ref(null);
 const isLoading = ref(false);
 const processingProgress = ref(0);
 const processingStatus = ref("uploading"); // "uploading" | "processing"
-const showReport = ref(false);
-const currentReportResult = ref(null);
 const fileInput = ref(null);
 const showSettings = ref(false);
 const tempApiUrl = ref("");
@@ -219,6 +180,7 @@ const {
   isConnected,
   transcribeFile,
   transcribeUrl,
+  analyzeText,
   saveApiUrl,
   testConnection: testApiConnection,
 } = useApi();
@@ -260,21 +222,43 @@ const handleFileTranscribe = async () => {
   isLoading.value = true;
   processingProgress.value = 0;
   processingStatus.value = "uploading";
+  result.value = null; // 重置识别结果，确保同步展示
 
   try {
-    result.value = await transcribeFile(selectedFile.value, (percent) => {
-      processingProgress.value = percent;
-      if (percent === 100) {
-        processingStatus.value = "processing";
-        // Start simulating processing progress from 0 to 99
-        startProcessingSimulation();
+    // 1. 转写
+    const transcribeRes = await transcribeFile(
+      selectedFile.value,
+      (percent) => {
+        processingProgress.value = percent;
+        if (percent === 100) {
+          processingStatus.value = "processing";
+          startProcessingSimulation();
+        }
+      },
+    );
+
+    // 2. 自动分析
+    stopProcessingSimulation();
+    processingStatus.value = "analyzing";
+    processingProgress.value = 99;
+
+    try {
+      const analysisData = await analyzeText(transcribeRes.text);
+      if (analysisData.success) {
+        transcribeRes.aiAnalysis = analysisData;
       }
-    });
+    } catch (analysisError) {
+      console.error("AI Analysis failed:", analysisError);
+      // 分析失败不影响转写结果显示，但标记一下
+      transcribeRes.aiAnalysisError = analysisError.message;
+    }
+
+    result.value = transcribeRes;
     processingProgress.value = 100;
-    showToast("识别完成！", "success");
+    showToast("识别与分析完成！", "success");
   } catch (error) {
     console.error("Error:", error);
-    showToast(error.message || "识别失败", "error");
+    showToast(error.message || "处理失败", "error");
   } finally {
     isLoading.value = false;
     stopProcessingSimulation();
@@ -304,18 +288,36 @@ const handleUrlTranscribe = async () => {
 
   isLoading.value = true;
   processingProgress.value = 0;
-  processingStatus.value = "processing"; // URL transcription is handled entirely on backend
+  processingStatus.value = "processing";
+  urlInfo.value = null;
 
-  // Simulate progress for URL transcription
   startProcessingSimulation();
 
   try {
-    urlInfo.value = await transcribeUrl(videoUrl.value);
+    // 1. 转写
+    const transcribeRes = await transcribeUrl(videoUrl.value);
+
+    // 2. 自动分析
+    stopProcessingSimulation();
+    processingStatus.value = "analyzing";
+    processingProgress.value = 99;
+
+    try {
+      const analysisData = await analyzeText(transcribeRes.text);
+      if (analysisData.success) {
+        transcribeRes.aiAnalysis = analysisData;
+      }
+    } catch (analysisError) {
+      console.error("AI Analysis failed:", analysisError);
+      transcribeRes.aiAnalysisError = analysisError.message;
+    }
+
+    urlInfo.value = transcribeRes;
     processingProgress.value = 100;
-    showToast("识别完成！", "success");
+    showToast("识别与分析完成！", "success");
   } catch (error) {
     console.error("Error:", error);
-    showToast(error.message || "识别失败", "error");
+    showToast(error.message || "处理失败", "error");
   } finally {
     isLoading.value = false;
     stopProcessingSimulation();
@@ -331,14 +333,6 @@ const copyResult = async () => {
     } catch (error) {
       showToast("复制失败", "error");
     }
-  }
-};
-
-const openReport = () => {
-  currentReportResult.value =
-    mode.value === "file" ? result.value : urlInfo.value;
-  if (currentReportResult.value) {
-    showReport.value = true;
   }
 };
 
@@ -430,6 +424,72 @@ const saveSettings = () => {
 
   .main-container {
     padding: 20px;
+  }
+}
+
+/* Processing View Styles */
+.processing-view {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.processing-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.pulse-icon {
+  font-size: 48px;
+  margin-bottom: 20px;
+  animation: pulse 2s infinite ease-in-out;
+}
+
+.processing-placeholder p {
+  font-size: 15px;
+  color: var(--text-gray);
+  margin: 0;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 24px;
+}
+
+.remove-btn {
+  background: var(--bg-input);
+  color: var(--text-white);
+  border: 1px solid var(--border-color);
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.remove-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--text-muted);
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0.8;
   }
 }
 </style>

@@ -28,16 +28,19 @@ const props = defineProps({
   },
   status: {
     type: String,
-    default: "uploading", // 'uploading' | 'processing'
+    default: "uploading", // 'uploading' | 'processing' | 'analyzing'
   },
 });
 
-const isProcessing = computed(() => props.status === "processing");
+const isProcessing = computed(
+  () => props.status === "processing" || props.status === "analyzing",
+);
 
 const statusText = computed(() => {
-  if (props.status === "processing") return "正在识别内容...";
-  if (props.progress === 100) return "上传完成，准备识别";
-  return "正在上传文件...";
+  if (props.status === "analyzing") return "识别完成，正在进行 AI 深度洞察...";
+  if (props.status === "processing") return "正在识别多媒体内容...";
+  if (props.progress === 100) return "上传完成，准备转写";
+  return "正在上传媒体文件...";
 });
 </script>
 
