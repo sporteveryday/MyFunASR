@@ -37,6 +37,12 @@
           :is-loading="isLoading"
           @submit="handleUrlTranscribe"
         />
+        <ProgressBar
+          :show="isLoading"
+          :progress="processingProgress"
+          :status="processingStatus"
+          style="margin-top: 24px"
+        />
       </div>
 
       <!-- File Mode Content Grid-->
@@ -61,9 +67,18 @@
             @transcribe="handleFileTranscribe"
             style="margin-top: 16px"
           />
+          <ProgressBar
+            :show="isLoading"
+            :progress="processingProgress"
+            :status="processingStatus"
+          />
         </InfoCard>
 
-        <ResultCard :result="result" @copy="copyResult" />
+        <ResultCard
+          :result="result"
+          @copy="copyResult"
+          @view-report="openReport"
+        />
       </div>
 
       <!-- URL Mode Content Grid -->
@@ -128,9 +143,18 @@
               <span class="detail-value">{{ urlInfo.processing_time }}s</span>
             </div>
           </div>
+          <ProgressBar
+            :show="isLoading"
+            :progress="processingProgress"
+            :status="processingStatus"
+          />
         </InfoCard>
 
-        <ResultCard :result="urlInfo" @copy="copyResult" />
+        <ResultCard
+          :result="urlInfo"
+          @copy="copyResult"
+          @view-report="openReport"
+        />
       </div>
     </div>
 
@@ -146,6 +170,13 @@
 
     <!-- Toast Notification -->
     <Toast :toast="toast" />
+
+    <!-- Report Modal -->
+    <ReportModal
+      :show="showReport"
+      :result="currentReportResult"
+      @close="showReport = false"
+    />
   </div>
 </template>
 
@@ -159,6 +190,8 @@ import MediaPreview from "./components/MediaPreview.vue";
 import InfoCard from "./components/InfoCard.vue";
 import FileDetails from "./components/FileDetails.vue";
 import ResultCard from "./components/ResultCard.vue";
+import ProgressBar from "./components/ProgressBar.vue";
+import ReportModal from "./components/ReportModal.vue";
 import SettingsModal from "./components/SettingsModal.vue";
 import Toast from "./components/Toast.vue";
 
@@ -172,6 +205,10 @@ import { formatFileSize, formatDuration } from "./utils/formatters";
 const mode = ref("file");
 const result = ref(null);
 const isLoading = ref(false);
+const processingProgress = ref(0);
+const processingStatus = ref("uploading"); // "uploading" | "processing"
+const showReport = ref(false);
+const currentReportResult = ref(null);
 const fileInput = ref(null);
 const showSettings = ref(false);
 const tempApiUrl = ref("");
@@ -221,14 +258,44 @@ const handleFileTranscribe = async () => {
   if (!selectedFile.value) return;
 
   isLoading.value = true;
+  processingProgress.value = 0;
+  processingStatus.value = "uploading";
+
   try {
-    result.value = await transcribeFile(selectedFile.value);
+    result.value = await transcribeFile(selectedFile.value, (percent) => {
+      processingProgress.value = percent;
+      if (percent === 100) {
+        processingStatus.value = "processing";
+        // Start simulating processing progress from 0 to 99
+        startProcessingSimulation();
+      }
+    });
+    processingProgress.value = 100;
     showToast("识别完成！", "success");
   } catch (error) {
     console.error("Error:", error);
     showToast(error.message || "识别失败", "error");
   } finally {
     isLoading.value = false;
+    stopProcessingSimulation();
+  }
+};
+
+let processingInterval = null;
+const startProcessingSimulation = () => {
+  let simulatedProgress = 0;
+  processingInterval = setInterval(() => {
+    if (simulatedProgress < 95) {
+      simulatedProgress += Math.random() * 5;
+      processingProgress.value = Math.min(Math.floor(simulatedProgress), 99);
+    }
+  }, 1000);
+};
+
+const stopProcessingSimulation = () => {
+  if (processingInterval) {
+    clearInterval(processingInterval);
+    processingInterval = null;
   }
 };
 
@@ -236,14 +303,22 @@ const handleUrlTranscribe = async () => {
   if (!videoUrl.value) return;
 
   isLoading.value = true;
+  processingProgress.value = 0;
+  processingStatus.value = "processing"; // URL transcription is handled entirely on backend
+
+  // Simulate progress for URL transcription
+  startProcessingSimulation();
+
   try {
     urlInfo.value = await transcribeUrl(videoUrl.value);
+    processingProgress.value = 100;
     showToast("识别完成！", "success");
   } catch (error) {
     console.error("Error:", error);
     showToast(error.message || "识别失败", "error");
   } finally {
     isLoading.value = false;
+    stopProcessingSimulation();
   }
 };
 
@@ -256,6 +331,14 @@ const copyResult = async () => {
     } catch (error) {
       showToast("复制失败", "error");
     }
+  }
+};
+
+const openReport = () => {
+  currentReportResult.value =
+    mode.value === "file" ? result.value : urlInfo.value;
+  if (currentReportResult.value) {
+    showReport.value = true;
   }
 };
 
